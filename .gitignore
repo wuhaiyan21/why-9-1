@@ -1,6 +1,7 @@
 node_modules/
 dist/
 release/
+build/
 .env
 .env.*
 !.env.example
@@ -9,4 +10,9 @@ release/
 Thumbs.db
 .idea/
 .vscode/
-data/*.db
+data/
+*.db
+*.sqlite
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

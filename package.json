@@ -1,0 +1,27 @@
+{
+  "name": "pomodoro-tracker",
+  "version": "1.0.0",
+  "description": "桌面番茄钟习惯追踪助手",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "keywords": ["pomodoro", "electron", "productivity"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "sql.js": "^1.10.3"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.pomodoro.tracker",
+    "productName": "PomodoroTracker",
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

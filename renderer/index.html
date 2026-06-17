@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>番茄钟习惯追踪</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🍅 番茄钟</h1>
+      <p class="subtitle">专注工作，追踪习惯</p>
+    </header>
+
+    <section class="timer-section">
+      <div class="timer-display">
+        <div id="timer-text" class="timer-text">25:00</div>
+        <div id="phase-text" class="phase-text">准备开始</div>
+        <div class="progress-ring-container">
+          <svg class="progress-ring" width="200" height="200">
+            <circle class="progress-ring-bg" cx="100" cy="100" r="90"></circle>
+            <circle id="progress-ring-fill" class="progress-ring-fill" cx="100" cy="100" r="90"></circle>
+          </svg>
+        </div>
+      </div>
+
+      <div class="cycle-indicator">
+        <span id="cycle-count">第 0/4 个番茄</span>
+      </div>
+
+      <div class="tag-selector">
+        <label for="tag-select">选择习惯标签：</label>
+        <select id="tag-select"></select>
+        <button id="add-tag-btn" class="btn-small">+ 新建</button>
+      </div>
+
+      <div class="timer-controls">
+        <button id="start-btn" class="btn btn-primary">开始专注</button>
+        <button id="pause-btn" class="btn btn-secondary" style="display:none;">暂停</button>
+        <button id="skip-btn" class="btn btn-outline" style="display:none;">跳过</button>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h2>时间设置</h2>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <label>工作时长（分钟）</label>
+          <input type="number" id="work-duration" min="1" max="180" value="25">
+        </div>
+        <div class="setting-item">
+          <label>短休息（分钟）</label>
+          <input type="number" id="short-break" min="1" max="60" value="5">
+        </div>
+        <div class="setting-item">
+          <label>长休息（分钟）</label>
+          <input type="number" id="long-break" min="1" max="120" value="15">
+        </div>
+      </div>
+      <button id="save-settings-btn" class="btn btn-small">保存设置</button>
+    </section>
+
+    <section class="stats-section">
+      <h2>今日统计</h2>
+      <div id="today-stats" class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-today-minutes">0</div>
+          <div class="stat-label">今日专注（分钟）</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-minutes">0</div>
+          <div class="stat-label">累计专注（分钟）</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="history-section">
+      <div class="section-header">
+        <h2>今日记录</h2>
+        <select id="history-tag-select" class="select-small"></select>
+      </div>
+      <div id="history-list" class="history-list">
+        <p class="empty-text">暂无记录</p>
+      </div>
+    </section>
+  </div>
+
+  <div id="tag-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h3>新建标签</h3>
+      <input type="text" id="new-tag-name" placeholder="标签名称">
+      <div class="color-picker">
+        <label>颜色：</label>
+        <input type="color" id="new-tag-color" value="#4CAF50">
+      </div>
+      <div class="modal-actions">
+        <button id="cancel-tag-btn" class="btn btn-outline">取消</button>
+        <button id="confirm-tag-btn" class="btn btn-primary">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

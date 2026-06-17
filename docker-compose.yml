@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  pomodoro:
+    build: .
+    container_name: pomodoro-tracker
+    environment:
+      - POMODORO_DATA_DIR=/app/data
+      - DISPLAY=${DISPLAY:-:0}
+      - ELECTRON_DISABLE_SANDBOX=true
+      - ELECTRON_DISABLE_GPU=true
+    volumes:
+      - ./data:/app/data
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    network_mode: host
+    ipc: host
+    security_opt:
+      - seccomp:unconfined
+    restart: unless-stopped

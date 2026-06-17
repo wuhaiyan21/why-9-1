@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>番茄钟倒计时</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="fullscreen-body">
+  <div class="fullscreen-container">
+    <div class="fullscreen-content">
+      <div id="tag-display" class="tag-display"></div>
+      <div id="phase-display" class="phase-display">专注中</div>
+      <div id="timer-display" class="fullscreen-timer">25:00</div>
+      <div class="progress-ring-container-lg">
+        <svg class="progress-ring-lg" width="400" height="400">
+          <circle class="progress-ring-bg-lg" cx="200" cy="200" r="180"></circle>
+          <circle id="progress-ring-fill-lg" class="progress-ring-fill-lg" cx="200" cy="200" r="180"></circle>
+        </svg>
+      </div>
+      <div class="fullscreen-controls">
+        <button id="pause-btn" class="btn btn-light">暂停</button>
+        <button id="skip-btn" class="btn btn-light-outline">跳过</button>
+        <button id="minimize-btn" class="btn btn-light-outline">最小化</button>
+      </div>
+    </div>
+  </div>
+  <script src="fullscreen.js"></script>
+</body>
+</html>
