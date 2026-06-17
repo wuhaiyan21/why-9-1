@@ -2,17 +2,20 @@ version: '3.8'
 
 services:
   pomodoro:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: pomodoro-tracker
     environment:
       - POMODORO_DATA_DIR=/app/data
       - DISPLAY=${DISPLAY:-:0}
       - ELECTRON_DISABLE_SANDBOX=true
       - ELECTRON_DISABLE_GPU=true
+      - DBUS_SESSION_BUS_ADDRESS=/dev/null
     volumes:
       - ./data:/app/data
-      - /tmp/.X11-unix:/tmp/.X11-unix
-    network_mode: host
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    network_mode: bridge
     ipc: host
     security_opt:
       - seccomp:unconfined

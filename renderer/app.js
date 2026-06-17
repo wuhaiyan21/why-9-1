@@ -143,14 +143,33 @@ function updateUIState(state) {
     startBtn.style.display = 'inline-block';
     pauseBtn.style.display = 'none';
     skipBtn.style.display = 'none';
+
+    if (state.phase === 'work') {
+      startBtn.textContent = '开始专注';
+    } else if (state.phase === 'longBreak') {
+      startBtn.textContent = '开始长休息';
+    } else {
+      startBtn.textContent = '开始休息';
+    }
   }
 
-  const phaseMap = {
+  const runningPhaseMap = {
     'work': '工作中',
     'break': '休息中',
     'longBreak': '长休息中'
   };
-  phaseText.textContent = (state.isRunning || state.isPaused) ? (phaseMap[state.phase] || '准备开始') : '准备开始';
+  const waitingPhaseMap = {
+    'work': '准备开始工作',
+    'break': '等待进入休息',
+    'longBreak': '等待进入长休息'
+  };
+
+  if (state.isRunning || state.isPaused) {
+    phaseText.textContent = runningPhaseMap[state.phase] || '准备开始';
+  } else {
+    phaseText.textContent = waitingPhaseMap[state.phase] || '准备开始';
+  }
+
   cycleCount.textContent = `第 ${state.completedWorkSessions}/4 个番茄`;
 }
 
@@ -181,8 +200,13 @@ function getPhaseColor(phase) {
 }
 
 async function startTimer() {
-  const selectedTag = tags.find(t => t.id === selectedTagId);
-  await window.api.startTimer(selectedTagId, selectedTag ? selectedTag.name : '');
+  if (timerState && !timerState.isRunning && !timerState.isPaused &&
+      (timerState.phase === 'break' || timerState.phase === 'longBreak')) {
+    await window.api.startNextPhase();
+  } else {
+    const selectedTag = tags.find(t => t.id === selectedTagId);
+    await window.api.startTimer(selectedTagId, selectedTag ? selectedTag.name : '');
+  }
 }
 
 async function pauseTimer() {

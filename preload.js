@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   
   startTimer: (tagId, tagName) => ipcRenderer.invoke('start-timer', tagId, tagName),
+  startNextPhase: () => ipcRenderer.invoke('start-next-phase'),
   pauseTimer: () => ipcRenderer.invoke('pause-timer'),
   resumeTimer: () => ipcRenderer.invoke('resume-timer'),
   skipPhase: () => ipcRenderer.invoke('skip-phase'),

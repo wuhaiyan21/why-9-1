@@ -20,7 +20,9 @@ let timerState = {
   completedWorkSessions: 0,
   remainingSeconds: 25 * 60,
   totalSeconds: 25 * 60,
-  intervalId: null
+  intervalId: null,
+  autoStartNextPhase: false,
+  skipped: false
 };
 
 function getDataDir() {
@@ -150,7 +152,7 @@ function updateTrayMenu() {
   tray.setContextMenu(contextMenu);
 }
 
-function startTimer() {
+function startTimer(autoStart) {
   if (timerState.isRunning && !timerState.isPaused) return;
 
   if (!timerState.isPaused) {
@@ -162,10 +164,12 @@ function startTimer() {
       timerState.remainingSeconds = timerState.shortBreakDuration * 60;
     }
     timerState.totalSeconds = timerState.remainingSeconds;
+    timerState.skipped = false;
   }
 
   timerState.isRunning = true;
   timerState.isPaused = false;
+  timerState.autoStartNextPhase = true;
 
   if (!fullscreenWindow) {
     createFullscreenWindow();
@@ -184,7 +188,7 @@ function startTimer() {
     updateTrayMenu();
 
     if (timerState.remainingSeconds <= 0) {
-      phaseComplete();
+      phaseComplete(false);
     }
   }, 1000);
 
@@ -209,13 +213,14 @@ function resumeTimer() {
   if (!timerState.isPaused) return;
 
   timerState.isPaused = false;
+  timerState.autoStartNextPhase = true;
   timerState.intervalId = setInterval(() => {
     timerState.remainingSeconds--;
     updateAllTimers();
     updateTrayMenu();
 
     if (timerState.remainingSeconds <= 0) {
-      phaseComplete();
+      phaseComplete(false);
     }
   }, 1000);
 
@@ -228,20 +233,24 @@ function skipPhase() {
     clearInterval(timerState.intervalId);
     timerState.intervalId = null;
   }
-  phaseComplete();
+  timerState.skipped = true;
+  phaseComplete(true);
 }
 
-function phaseComplete() {
-  if (timerState.phase === 'work' && timerState.currentTagId) {
+function phaseComplete(isSkipped) {
+  const previousPhase = timerState.phase;
+
+  if (previousPhase === 'work' && timerState.currentTagId && !isSkipped) {
     const duration = Math.round((timerState.totalSeconds - timerState.remainingSeconds) / 60);
-    if (duration > 0) {
-      db.addSession(timerState.currentTagId, duration, timerState.phase);
+    const actualDuration = Math.min(duration, timerState.workDuration);
+    if (actualDuration > 0) {
+      db.addSession(timerState.currentTagId, actualDuration, previousPhase);
     }
   }
 
-  showNotification();
+  showNotification(previousPhase);
 
-  if (timerState.phase === 'work') {
+  if (previousPhase === 'work') {
     timerState.completedWorkSessions++;
     if (timerState.completedWorkSessions >= 4) {
       timerState.completedWorkSessions = 0;
@@ -257,11 +266,38 @@ function phaseComplete() {
   }
 
   timerState.totalSeconds = timerState.remainingSeconds;
-  timerState.isRunning = false;
+  timerState.skipped = false;
   timerState.isPaused = false;
 
-  if (fullscreenWindow) {
-    fullscreenWindow.hide();
+  if (timerState.autoStartNextPhase && !isSkipped) {
+    timerState.isRunning = true;
+
+    if (!fullscreenWindow) {
+      createFullscreenWindow();
+    } else {
+      fullscreenWindow.show();
+      fullscreenWindow.focus();
+    }
+
+    if (timerState.intervalId) {
+      clearInterval(timerState.intervalId);
+    }
+
+    timerState.intervalId = setInterval(() => {
+      timerState.remainingSeconds--;
+      updateAllTimers();
+      updateTrayMenu();
+
+      if (timerState.remainingSeconds <= 0) {
+        phaseComplete(false);
+      }
+    }, 1000);
+  } else {
+    timerState.isRunning = false;
+    timerState.autoStartNextPhase = false;
+    if (fullscreenWindow) {
+      fullscreenWindow.hide();
+    }
   }
 
   updateTrayMenu();
@@ -269,9 +305,9 @@ function phaseComplete() {
   if (mainWindow) mainWindow.webContents.send('sessions-updated');
 }
 
-function showNotification() {
-  const title = timerState.phase === 'work' ? '工作结束！' : '休息结束！';
-  const body = timerState.phase === 'work' ? '休息一下吧~' : '准备开始工作啦~';
+function showNotification(previousPhase) {
+  const title = previousPhase === 'work' ? '工作结束！' : '休息结束！';
+  const body = previousPhase === 'work' ? '休息一下吧~' : '准备开始工作啦~';
 
   if (Notification.isSupported()) {
     new Notification({
@@ -418,6 +454,13 @@ ipcMain.handle('start-timer', (event, tagId, tagName) => {
   timerState.currentTagName = tagName || '';
   timerState.phase = 'work';
   timerState.completedWorkSessions = 0;
+  timerState.isPaused = false;
+  startTimer();
+  return true;
+});
+
+ipcMain.handle('start-next-phase', () => {
+  timerState.isPaused = false;
   startTimer();
   return true;
 });
