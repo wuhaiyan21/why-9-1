@@ -33,12 +33,46 @@
         <label for="tag-select">选择习惯标签：</label>
         <select id="tag-select"></select>
         <button id="add-tag-btn" class="btn-small">+ 新建</button>
+        <button id="edit-goal-btn" class="btn-small">编辑目标</button>
       </div>
 
       <div class="timer-controls">
         <button id="start-btn" class="btn btn-primary">开始专注</button>
         <button id="pause-btn" class="btn btn-secondary" style="display:none;">暂停</button>
         <button id="skip-btn" class="btn btn-outline" style="display:none;">跳过</button>
+      </div>
+    </section>
+
+    <section class="stats-section">
+      <h2>今日统计</h2>
+      <div class="daily-goal-section">
+        <div class="goal-info">
+          <span class="goal-label">每日目标</span>
+          <span id="goal-minutes" class="goal-value">0 / 120 分钟</span>
+          <span id="goal-remaining" class="goal-remaining">剩余 120 分钟</span>
+        </div>
+        <div class="daily-progress-bar">
+          <div id="daily-progress-fill" class="daily-progress-fill"></div>
+        </div>
+      </div>
+      <div id="today-stats" class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-today-minutes">0</div>
+          <div class="stat-label">今日专注（分钟）</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-minutes">0</div>
+          <div class="stat-label">累计专注（分钟）</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="weekly-section">
+      <div class="section-header">
+        <h2>周统计</h2>
+        <select id="weekly-tag-select" class="select-small"></select>
+      </div>
+      <div id="weekly-chart" class="weekly-chart">
       </div>
     </section>
 
@@ -58,27 +92,32 @@
           <input type="number" id="long-break" min="1" max="120" value="15">
         </div>
       </div>
-      <button id="save-settings-btn" class="btn btn-small">保存设置</button>
-    </section>
-
-    <section class="stats-section">
-      <h2>今日统计</h2>
-      <div id="today-stats" class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value" id="stat-today-minutes">0</div>
-          <div class="stat-label">今日专注（分钟）</div>
+      <h3 class="settings-subtitle">提示音设置</h3>
+      <div class="settings-grid sound-settings">
+        <div class="setting-item setting-item-wide">
+          <label class="checkbox-label">
+            <input type="checkbox" id="sound-enabled">
+            <span>启用阶段结束提示音</span>
+          </label>
         </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-total-minutes">0</div>
-          <div class="stat-label">累计专注（分钟）</div>
+        <div class="setting-item setting-item-wide">
+          <label for="sound-volume">音量</label>
+          <input type="range" id="sound-volume" min="0" max="100" value="70">
+          <span id="sound-volume-value" class="volume-value">70%</span>
         </div>
       </div>
+      <button id="save-settings-btn" class="btn btn-small">保存设置</button>
     </section>
 
     <section class="history-section">
       <div class="section-header">
-        <h2>今日记录</h2>
-        <select id="history-tag-select" class="select-small"></select>
+        <h2 id="history-title">今日记录</h2>
+        <div class="history-controls">
+          <button id="prev-date-btn" class="btn-mini">←</button>
+          <span id="history-date" class="history-date"></span>
+          <button id="next-date-btn" class="btn-mini">→</button>
+          <select id="history-tag-select" class="select-small"></select>
+        </div>
       </div>
       <div id="history-list" class="history-list">
         <p class="empty-text">暂无记录</p>
@@ -88,15 +127,33 @@
 
   <div id="tag-modal" class="modal" style="display:none;">
     <div class="modal-content">
-      <h3>新建标签</h3>
+      <h3 id="tag-modal-title">新建标签</h3>
       <input type="text" id="new-tag-name" placeholder="标签名称">
       <div class="color-picker">
         <label>颜色：</label>
         <input type="color" id="new-tag-color" value="#4CAF50">
       </div>
+      <div class="goal-picker">
+        <label for="new-tag-goal">每日目标（分钟）：</label>
+        <input type="number" id="new-tag-goal" min="1" max="1440" value="120">
+      </div>
       <div class="modal-actions">
         <button id="cancel-tag-btn" class="btn btn-outline">取消</button>
         <button id="confirm-tag-btn" class="btn btn-primary">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="goal-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h3>编辑每日目标</h3>
+      <div class="goal-picker">
+        <label for="edit-goal-input">每日专注目标（分钟）：</label>
+        <input type="number" id="edit-goal-input" min="1" max="1440" value="120">
+      </div>
+      <div class="modal-actions">
+        <button id="cancel-goal-btn" class="btn btn-outline">取消</button>
+        <button id="confirm-goal-btn" class="btn btn-primary">确定</button>
       </div>
     </div>
   </div>

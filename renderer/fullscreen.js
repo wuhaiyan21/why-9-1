@@ -1,4 +1,5 @@
 let isPaused = false;
+let audioContext = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
@@ -19,6 +20,59 @@ function setupIpcListeners() {
 
   window.api.onStateUpdate((state) => {
     updateState(state);
+  });
+
+  window.api.onPlaySound((data) => {
+    playSound(data.type, data.volume);
+  });
+}
+
+function ensureAudioContext() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+}
+
+function playSound(type, volume) {
+  try {
+    ensureAudioContext();
+    const vol = Math.max(0, Math.min(100, volume || 70)) / 100;
+
+    if (type === 'workEnd') {
+      playToneSequence([
+        { freq: 523.25, duration: 0.15, delay: 0 },
+        { freq: 659.25, duration: 0.15, delay: 0.15 },
+        { freq: 783.99, duration: 0.3, delay: 0.3 }
+      ], vol);
+    } else {
+      playToneSequence([
+        { freq: 783.99, duration: 0.12, delay: 0 },
+        { freq: 659.25, duration: 0.12, delay: 0.12 },
+        { freq: 523.25, duration: 0.2, delay: 0.24 }
+      ], vol);
+    }
+  } catch (e) {
+    console.warn('Sound playback failed:', e);
+  }
+}
+
+function playToneSequence(notes, volume) {
+  notes.forEach(note => {
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+    osc.type = 'sine';
+    osc.frequency.value = note.freq;
+    const startTime = audioContext.currentTime + note.delay;
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+    gain.gain.linearRampToValueAtTime(0, startTime + note.duration);
+    osc.start(startTime);
+    osc.stop(startTime + note.duration + 0.05);
   });
 }
 
@@ -79,6 +133,7 @@ function updateDisplay(data) {
 }
 
 async function togglePause() {
+  ensureAudioContext();
   if (isPaused) {
     await window.api.resumeTimer();
   } else {

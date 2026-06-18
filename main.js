@@ -17,6 +17,8 @@ let timerState = {
   workDuration: 25,
   shortBreakDuration: 5,
   longBreakDuration: 15,
+  soundEnabled: true,
+  soundVolume: 70,
   completedWorkSessions: 0,
   remainingSeconds: 25 * 60,
   totalSeconds: 25 * 60,
@@ -305,9 +307,23 @@ function phaseComplete(isSkipped) {
   if (mainWindow) mainWindow.webContents.send('sessions-updated');
 }
 
+function playPhaseEndSound(previousPhase) {
+  if (!timerState.soundEnabled) return;
+  const soundType = previousPhase === 'work' ? 'workEnd' : 'breakEnd';
+  const payload = { type: soundType, volume: timerState.soundVolume };
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('play-sound', payload);
+  }
+  if (fullscreenWindow && !fullscreenWindow.isDestroyed()) {
+    fullscreenWindow.webContents.send('play-sound', payload);
+  }
+}
+
 function showNotification(previousPhase) {
   const title = previousPhase === 'work' ? '工作结束！' : '休息结束！';
   const body = previousPhase === 'work' ? '休息一下吧~' : '准备开始工作啦~';
+
+  playPhaseEndSound(previousPhase);
 
   if (Notification.isSupported()) {
     new Notification({
@@ -373,6 +389,8 @@ app.whenReady().then(async () => {
     timerState.workDuration = settings.work_duration || 25;
     timerState.shortBreakDuration = settings.short_break_duration || 5;
     timerState.longBreakDuration = settings.long_break_duration || 15;
+    timerState.soundEnabled = settings.sound_enabled !== 0;
+    timerState.soundVolume = settings.sound_volume || 70;
     timerState.remainingSeconds = timerState.workDuration * 60;
     timerState.totalSeconds = timerState.workDuration * 60;
   }
@@ -412,8 +430,12 @@ ipcMain.handle('get-tags', () => {
   return db.getTags();
 });
 
-ipcMain.handle('add-tag', (event, name, color) => {
-  return db.addTag(name, color);
+ipcMain.handle('add-tag', (event, name, color, dailyGoalMinutes) => {
+  return db.addTag(name, color, dailyGoalMinutes);
+});
+
+ipcMain.handle('update-tag-daily-goal', (event, tagId, dailyGoalMinutes) => {
+  return db.updateTagDailyGoal(tagId, dailyGoalMinutes);
 });
 
 ipcMain.handle('delete-tag', (event, id) => {
@@ -426,6 +448,14 @@ ipcMain.handle('get-tag-stats', (event, tagId) => {
 
 ipcMain.handle('get-today-sessions', (event, tagId) => {
   return db.getTodaySessions(tagId);
+});
+
+ipcMain.handle('get-sessions-by-date', (event, tagId, dateStr) => {
+  return db.getSessionsByDate(tagId, dateStr);
+});
+
+ipcMain.handle('get-weekly-stats', (event, tagId) => {
+  return db.getWeeklyStats(tagId);
 });
 
 ipcMain.handle('toggle-session-valid', (event, sessionId, isValid) => {
@@ -441,6 +471,8 @@ ipcMain.handle('save-settings', (event, settings) => {
   timerState.workDuration = settings.workDuration;
   timerState.shortBreakDuration = settings.shortBreakDuration;
   timerState.longBreakDuration = settings.longBreakDuration;
+  timerState.soundEnabled = settings.soundEnabled !== false;
+  timerState.soundVolume = settings.soundVolume || 70;
   if (!timerState.isRunning && !timerState.isPaused) {
     timerState.remainingSeconds = timerState.workDuration * 60;
     timerState.totalSeconds = timerState.workDuration * 60;

@@ -226,6 +226,51 @@ select {
   text-align: center;
 }
 
+.daily-goal-section {
+  margin-bottom: 15px;
+}
+
+.goal-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.goal-label {
+  font-size: 13px;
+  color: #777;
+}
+
+.goal-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.goal-remaining {
+  font-size: 12px;
+  color: #999;
+}
+
+.daily-progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #e8ecf1;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.daily-progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 5px;
+  width: 0%;
+  transition: width 0.5s ease;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -470,4 +515,160 @@ select {
 
 .btn-light-outline:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.weekly-section {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.weekly-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 140px;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.weekly-bar-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.weekly-bar {
+  width: 100%;
+  max-width: 36px;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s ease;
+  min-height: 2px;
+  position: relative;
+}
+
+.weekly-bar-value {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.weekly-bar-label {
+  font-size: 11px;
+  color: #888;
+  margin-top: 6px;
+}
+
+.settings-subtitle {
+  font-size: 15px;
+  color: #333;
+  margin: 18px 0 12px 0;
+}
+
+.sound-settings {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.setting-item-wide {
+  width: 100%;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #555;
+  flex-direction: row !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #e0e0e0;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #667eea;
+  cursor: pointer;
+}
+
+.volume-value {
+  font-size: 12px;
+  color: #888;
+  text-align: right;
+  margin-top: 2px;
+}
+
+.history-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-date {
+  font-size: 12px;
+  color: #666;
+  min-width: 70px;
+  text-align: center;
+}
+
+.history-controls .btn-mini {
+  padding: 2px 8px;
+  font-size: 14px;
+  min-width: 28px;
+}
+
+.goal-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.goal-picker label {
+  font-size: 14px;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.goal-picker input[type="number"] {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+#prev-date-btn:disabled,
+#next-date-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

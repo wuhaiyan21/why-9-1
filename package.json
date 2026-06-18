@@ -7,7 +7,11 @@
     "start": "electron .",
     "build": "electron-builder"
   },
-  "keywords": ["pomodoro", "electron", "productivity"],
+  "keywords": [
+    "pomodoro",
+    "electron",
+    "productivity"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
