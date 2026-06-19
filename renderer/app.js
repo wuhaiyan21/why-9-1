@@ -5,6 +5,7 @@ let weeklyTagId = null;
 let timerState = null;
 let historyDateOffset = 0;
 let audioContext = null;
+let goalCelebratedMap = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
   await loadTags();
@@ -17,6 +18,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function initDateNavigation() {
   updateDateDisplay();
+}
+
+function getLocalDateStr(date) {
+  const d = date || new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function setupEventListeners() {
@@ -47,6 +56,7 @@ function setupEventListeners() {
       historyDateOffset++;
       updateDateDisplay();
       loadHistory();
+      updateStatsForHistoryDate();
     }
   });
   document.getElementById('next-date-btn').addEventListener('click', () => {
@@ -54,6 +64,7 @@ function setupEventListeners() {
       historyDateOffset--;
       updateDateDisplay();
       loadHistory();
+      updateStatsForHistoryDate();
     }
   });
   document.getElementById('sound-volume').addEventListener('input', (e) => {
@@ -71,12 +82,16 @@ function setupIpcListeners() {
     updateUIState(state);
     updateTimerDisplay(state);
     if (state.isRunning || state.isPaused) {
-      updateStats();
+      if (historyDateOffset === 0) {
+        updateStats();
+      }
     }
   });
 
   window.api.onSessionsUpdated(() => {
-    updateStats();
+    if (historyDateOffset === 0) {
+      updateStats(true);
+    }
     loadHistory();
     loadWeeklyStats();
   });
@@ -89,19 +104,18 @@ function setupIpcListeners() {
 function getHistoryDate() {
   const d = new Date();
   d.setDate(d.getDate() - historyDateOffset);
-  return d.toISOString().split('T')[0];
+  return getLocalDateStr(d);
 }
 
 function getHistoryDateDisplay() {
   const d = new Date();
   d.setDate(d.getDate() - historyDateOffset);
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  const dateStr = d.toISOString().split('T')[0];
+  const todayStr = getLocalDateStr();
+  const dateStr = getLocalDateStr(d);
   if (dateStr === todayStr) return '今天';
-  const yesterday = new Date(today);
+  const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  if (dateStr === yesterday.toISOString().split('T')[0]) return '昨天';
+  if (dateStr === getLocalDateStr(yesterday)) return '昨天';
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
@@ -110,6 +124,11 @@ function updateDateDisplay() {
   document.getElementById('history-title').textContent = historyDateOffset === 0 ? '今日记录' : '历史记录';
   document.getElementById('prev-date-btn').disabled = historyDateOffset >= 6;
   document.getElementById('next-date-btn').disabled = historyDateOffset <= 0;
+
+  const sectionTitle = document.querySelector('.stats-section h2');
+  if (sectionTitle) {
+    sectionTitle.textContent = historyDateOffset === 0 ? '今日统计' : `${getHistoryDateDisplay()}统计`;
+  }
 }
 
 function ensureAudioContext() {
@@ -132,11 +151,18 @@ function playSound(type, volume) {
         { freq: 659.25, duration: 0.15, delay: 0.15 },
         { freq: 783.99, duration: 0.3, delay: 0.3 }
       ], vol);
-    } else {
+    } else if (type === 'breakEnd') {
       playToneSequence([
         { freq: 783.99, duration: 0.12, delay: 0 },
         { freq: 659.25, duration: 0.12, delay: 0.12 },
         { freq: 523.25, duration: 0.2, delay: 0.24 }
+      ], vol);
+    } else if (type === 'goal') {
+      playToneSequence([
+        { freq: 523.25, duration: 0.1, delay: 0 },
+        { freq: 659.25, duration: 0.1, delay: 0.1 },
+        { freq: 783.99, duration: 0.1, delay: 0.2 },
+        { freq: 1046.50, duration: 0.3, delay: 0.3 }
       ], vol);
     }
   } catch (e) {
@@ -159,6 +185,19 @@ function playToneSequence(notes, volume) {
     osc.start(startTime);
     osc.stop(startTime + note.duration + 0.05);
   });
+}
+
+async function showGoalCelebration(tagName, todayMinutes, goalMinutes) {
+  const settings = await window.api.getSettings();
+  if (settings.sound_enabled !== 0) {
+    playSound('goal', settings.sound_volume || 70);
+  }
+
+  if (Notification && Notification.permission === 'granted') {
+    new Notification('🎉 恭喜达成目标！', {
+      body: `${tagName} 今日已完成 ${todayMinutes} 分钟，达成每日目标 ${goalMinutes} 分钟！`
+    });
+  }
 }
 
 async function loadTags() {
@@ -223,6 +262,10 @@ async function loadSettings() {
   const vol = settings.sound_volume !== undefined ? settings.sound_volume : 70;
   document.getElementById('sound-volume').value = vol;
   document.getElementById('sound-volume-value').textContent = vol + '%';
+
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
 }
 
 async function saveSettings() {
@@ -354,7 +397,25 @@ async function skipPhase() {
   await window.api.skipPhase();
 }
 
-async function updateStats() {
+async function updateStatsForHistoryDate() {
+  if (!selectedTagId) return;
+
+  const tag = tags.find(t => t.id === selectedTagId);
+  const dateStr = getHistoryDate();
+  const stats = await window.api.getTagStatsByDate(selectedTagId, dateStr);
+  const dayMinutes = stats.day_minutes || 0;
+  const goalMinutes = tag ? (tag.daily_goal_minutes || 120) : 120;
+  const remaining = Math.max(0, goalMinutes - dayMinutes);
+  const progress = goalMinutes > 0 ? Math.min(100, (dayMinutes / goalMinutes) * 100) : 0;
+
+  document.getElementById('goal-minutes').textContent = `${dayMinutes} / ${goalMinutes} 分钟`;
+  document.getElementById('goal-remaining').textContent = remaining > 0 ? `剩余 ${remaining} 分钟` : '已达成目标 🎉';
+  document.getElementById('daily-progress-fill').style.width = progress + '%';
+  document.getElementById('stat-today-minutes').textContent = dayMinutes;
+  document.getElementById('stat-total-minutes').textContent = stats.total_minutes || 0;
+}
+
+async function updateStats(checkCelebration) {
   if (!selectedTagId) return;
 
   const tag = tags.find(t => t.id === selectedTagId);
@@ -369,6 +430,29 @@ async function updateStats() {
   document.getElementById('daily-progress-fill').style.width = progress + '%';
   document.getElementById('stat-today-minutes').textContent = todayMinutes;
   document.getElementById('stat-total-minutes').textContent = stats.total_minutes || 0;
+
+  if (checkCelebration && tag) {
+    const todayStr = getLocalDateStr();
+    const cacheKey = `${tag.id}_${todayStr}`;
+    const prevState = goalCelebratedMap[cacheKey];
+
+    if (prevState === undefined) {
+      goalCelebratedMap[cacheKey] = {
+        celebrated: false,
+        wasBelow: todayMinutes < goalMinutes
+      };
+    } else {
+      const nowAbove = todayMinutes >= goalMinutes;
+      const wasBelow = prevState.wasBelow;
+      if (nowAbove && wasBelow && !prevState.celebrated) {
+        prevState.celebrated = true;
+        prevState.wasBelow = false;
+        showGoalCelebration(tag.name, todayMinutes, goalMinutes);
+      } else if (!nowAbove) {
+        prevState.wasBelow = true;
+      }
+    }
+  }
 }
 
 async function loadWeeklyStats() {
@@ -380,7 +464,7 @@ async function loadWeeklyStats() {
   const weekdayLabels = ['日', '一', '二', '三', '四', '五', '六'];
 
   days.forEach(day => {
-    const d = new Date(day.date);
+    const d = new Date(day.date + 'T00:00:00');
     const dayLabel = weekdayLabels[d.getDay()];
     const heightPct = (day.minutes / maxMinutes) * 100;
 
@@ -453,7 +537,12 @@ async function loadHistory() {
 
 async function toggleValid(sessionId, currentValid) {
   await window.api.toggleSessionValid(sessionId, !currentValid);
-  await Promise.all([updateStats(), loadHistory(), loadWeeklyStats()]);
+  if (historyDateOffset === 0) {
+    await updateStats();
+  } else {
+    await updateStatsForHistoryDate();
+  }
+  await Promise.all([loadHistory(), loadWeeklyStats()]);
 }
 
 window.toggleValid = toggleValid;
@@ -513,5 +602,10 @@ async function saveGoal() {
   }
   await window.api.updateTagDailyGoal(selectedTagId, goal);
   await loadTags();
+  if (historyDateOffset === 0) {
+    updateStats();
+  } else {
+    updateStatsForHistoryDate();
+  }
   hideGoalModal();
 }

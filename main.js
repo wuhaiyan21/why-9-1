@@ -446,6 +446,10 @@ ipcMain.handle('get-tag-stats', (event, tagId) => {
   return db.getTagStats(tagId);
 });
 
+ipcMain.handle('get-tag-stats-by-date', (event, tagId, dateStr) => {
+  return db.getTagStatsByDate(tagId, dateStr);
+});
+
 ipcMain.handle('get-today-sessions', (event, tagId) => {
   return db.getTodaySessions(tagId);
 });

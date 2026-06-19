@@ -71,9 +71,19 @@ function createTables() {
       duration_minutes INTEGER NOT NULL,
       phase TEXT NOT NULL,
       is_valid INTEGER NOT NULL DEFAULT 1,
+      date_str TEXT NOT NULL,
       started_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  const sessionCols = db.exec("PRAGMA table_info(sessions)");
+  if (sessionCols && sessionCols.length) {
+    const hasDateStr = sessionCols[0].values.some(row => row[1] === 'date_str');
+    if (!hasDateStr) {
+      db.run("ALTER TABLE sessions ADD COLUMN date_str TEXT");
+      db.run("UPDATE sessions SET date_str = date(started_at)");
+    }
+  }
 
   db.run(`
     CREATE TABLE IF NOT EXISTS settings (
@@ -140,33 +150,58 @@ function deleteTag(id) {
   return true;
 }
 
-function getTagStats(tagId) {
+function getTagStatsByDate(tagId, dateStr) {
   const result = db.exec(`
     SELECT 
-      COALESCE(SUM(CASE WHEN date(started_at) = date('now') AND is_valid = 1 AND phase = 'work' THEN duration_minutes ELSE 0 END), 0) as today_minutes,
+      COALESCE(SUM(CASE WHEN is_valid = 1 AND phase = 'work' THEN duration_minutes ELSE 0 END), 0) as day_minutes
+    FROM sessions
+    WHERE tag_id = ${parseInt(tagId)} AND date_str = '${dateStr}'
+  `);
+  const dayMinutes = result && result.length && result[0].values.length ? result[0].values[0][0] : 0;
+
+  const totalResult = db.exec(`
+    SELECT 
       COALESCE(SUM(CASE WHEN is_valid = 1 AND phase = 'work' THEN duration_minutes ELSE 0 END), 0) as total_minutes,
       COALESCE(SUM(CASE WHEN is_valid = 1 AND phase = 'work' THEN 1 ELSE 0 END), 0) as total_sessions
     FROM sessions
     WHERE tag_id = ${parseInt(tagId)}
   `);
-  return getFirstRow(result) || { today_minutes: 0, total_minutes: 0, total_sessions: 0 };
+  const totalRow = getFirstRow(totalResult) || { total_minutes: 0, total_sessions: 0 };
+  return {
+    day_minutes: dayMinutes,
+    total_minutes: totalRow.total_minutes,
+    total_sessions: totalRow.total_sessions
+  };
+}
+
+function getTagStats(tagId) {
+  const today = getLocalDateStr();
+  const stats = getTagStatsByDate(tagId, today);
+  return {
+    today_minutes: stats.day_minutes,
+    total_minutes: stats.total_minutes,
+    total_sessions: stats.total_sessions
+  };
+}
+
+function getLocalDateStr() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function getTodaySessions(tagId) {
-  const result = db.exec(`
-    SELECT id, duration_minutes, phase, is_valid, started_at
-    FROM sessions
-    WHERE tag_id = ${parseInt(tagId)} AND date(started_at) = date('now')
-    ORDER BY started_at DESC
-  `);
-  return rowsToObjects(result);
+  const today = getLocalDateStr();
+  return getSessionsByDate(tagId, today);
 }
 
 function getSessionsByDate(tagId, dateStr) {
   const result = db.exec(`
-    SELECT id, duration_minutes, phase, is_valid, started_at
+    SELECT id, duration_minutes, phase, is_valid, date_str, started_at
     FROM sessions
-    WHERE tag_id = ${parseInt(tagId)} AND date(started_at) = date('${dateStr}')
+    WHERE tag_id = ${parseInt(tagId)} AND date_str = '${dateStr}'
     ORDER BY started_at DESC
   `);
   return rowsToObjects(result);
@@ -174,25 +209,32 @@ function getSessionsByDate(tagId, dateStr) {
 
 function getWeeklyStats(tagId) {
   const days = [];
+  const today = new Date();
   for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
     const result = db.exec(`
       SELECT COALESCE(SUM(CASE WHEN is_valid = 1 AND phase = 'work' THEN duration_minutes ELSE 0 END), 0) as minutes
       FROM sessions
-      WHERE tag_id = ${parseInt(tagId)} AND date(started_at) = date('now', '-${i} days')
+      WHERE tag_id = ${parseInt(tagId)} AND date_str = '${dateStr}'
     `);
     const minutes = result && result.length && result[0].values.length ? result[0].values[0][0] : 0;
-    const dateResult = db.exec(`SELECT date('now', '-${i} days') as d`);
-    const date = dateResult && dateResult.length && dateResult[0].values.length ? dateResult[0].values[0][0] : '';
-    days.push({ date, minutes });
+    days.push({ date: dateStr, minutes });
   }
   return days;
 }
 
 function addSession(tagId, durationMinutes, phase) {
+  const dateStr = getLocalDateStr();
   db.run(`
-    INSERT INTO sessions (tag_id, duration_minutes, phase, is_valid)
-    VALUES (?, ?, ?, 1)
-  `, [tagId, durationMinutes, phase]);
+    INSERT INTO sessions (tag_id, duration_minutes, phase, is_valid, date_str)
+    VALUES (?, ?, ?, 1, ?)
+  `, [tagId, durationMinutes, phase, dateStr]);
   const result = db.exec('SELECT last_insert_rowid() as id');
   const id = result[0].values[0][0];
   saveDatabase();
@@ -248,6 +290,7 @@ module.exports = {
   deleteTag,
   updateTagDailyGoal,
   getTagStats,
+  getTagStatsByDate,
   getTodaySessions,
   getSessionsByDate,
   getWeeklyStats,

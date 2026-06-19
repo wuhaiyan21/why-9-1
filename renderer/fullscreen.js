@@ -47,11 +47,18 @@ function playSound(type, volume) {
         { freq: 659.25, duration: 0.15, delay: 0.15 },
         { freq: 783.99, duration: 0.3, delay: 0.3 }
       ], vol);
-    } else {
+    } else if (type === 'breakEnd') {
       playToneSequence([
         { freq: 783.99, duration: 0.12, delay: 0 },
         { freq: 659.25, duration: 0.12, delay: 0.12 },
         { freq: 523.25, duration: 0.2, delay: 0.24 }
+      ], vol);
+    } else if (type === 'goal') {
+      playToneSequence([
+        { freq: 523.25, duration: 0.1, delay: 0 },
+        { freq: 659.25, duration: 0.1, delay: 0.1 },
+        { freq: 783.99, duration: 0.1, delay: 0.2 },
+        { freq: 1046.50, duration: 0.3, delay: 0.3 }
       ], vol);
     }
   } catch (e) {

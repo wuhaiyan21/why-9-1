@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('api', {
   updateTagDailyGoal: (tagId, dailyGoalMinutes) => ipcRenderer.invoke('update-tag-daily-goal', tagId, dailyGoalMinutes),
   deleteTag: (id) => ipcRenderer.invoke('delete-tag', id),
   getTagStats: (tagId) => ipcRenderer.invoke('get-tag-stats', tagId),
+  getTagStatsByDate: (tagId, dateStr) => ipcRenderer.invoke('get-tag-stats-by-date', tagId, dateStr),
   getTodaySessions: (tagId) => ipcRenderer.invoke('get-today-sessions', tagId),
   getSessionsByDate: (tagId, dateStr) => ipcRenderer.invoke('get-sessions-by-date', tagId, dateStr),
   getWeeklyStats: (tagId) => ipcRenderer.invoke('get-weekly-stats', tagId),
