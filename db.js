@@ -81,7 +81,13 @@ function createTables() {
     const hasDateStr = sessionCols[0].values.some(row => row[1] === 'date_str');
     if (!hasDateStr) {
       db.run("ALTER TABLE sessions ADD COLUMN date_str TEXT");
-      db.run("UPDATE sessions SET date_str = date(started_at)");
+      migrateDateStrFromUtc();
+    } else {
+      const nullResult = db.exec("SELECT COUNT(*) as c FROM sessions WHERE date_str IS NULL OR date_str = ''");
+      const nullCount = nullResult && nullResult.length && nullResult[0].values.length ? nullResult[0].values[0][0] : 0;
+      if (nullCount > 0) {
+        migrateDateStrFromUtc();
+      }
     }
   }
 
@@ -115,6 +121,38 @@ function seedDefaultTag() {
   if (count === 0) {
     db.run("INSERT INTO tags (name, color) VALUES ('默认', '#4CAF50')");
   }
+}
+
+function migrateDateStrFromUtc() {
+  const result = db.exec("SELECT id, started_at FROM sessions WHERE date_str IS NULL OR date_str = ''");
+  if (!result || !result.length || !result[0].values.length === 0) return;
+
+  const stmt = db.prepare("UPDATE sessions SET date_str = ? WHERE id = ?");
+  result[0].values.forEach(row => {
+    const id = row[0];
+    const startedAt = row[1];
+    if (!startedAt) {
+      stmt.run([getLocalDateStr(), id]);
+      return;
+    }
+    let dateStr;
+    try {
+      const utcStr = startedAt.replace(' ', 'T') + 'Z';
+      const d = new Date(utcStr);
+      if (isNaN(d.getTime())) {
+        dateStr = getLocalDateStr();
+      } else {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        dateStr = `${year}-${month}-${day}`;
+      }
+    } catch (e) {
+      dateStr = getLocalDateStr();
+    }
+    stmt.run([dateStr, id]);
+  });
+  stmt.free();
 }
 
 function getTags() {

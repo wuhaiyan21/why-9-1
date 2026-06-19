@@ -38,7 +38,11 @@ function setupEventListeners() {
   document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
   document.getElementById('tag-select').addEventListener('change', (e) => {
     selectedTagId = parseInt(e.target.value);
-    updateStats();
+    if (historyDateOffset === 0) {
+      updateStats(false);
+    } else {
+      updateStatsForHistoryDate();
+    }
   });
   document.getElementById('history-tag-select').addEventListener('change', (e) => {
     currentHistoryTagId = parseInt(e.target.value);
@@ -207,9 +211,29 @@ async function loadTags() {
     selectedTagId = tags[0].id;
     currentHistoryTagId = tags[0].id;
     weeklyTagId = tags[0].id;
-    updateStats();
+    await initCelebrationState();
+    if (historyDateOffset === 0) {
+      updateStats(false);
+    } else {
+      updateStatsForHistoryDate();
+    }
     loadHistory();
     loadWeeklyStats();
+  }
+}
+
+async function initCelebrationState() {
+  const todayStr = getLocalDateStr();
+  for (const tag of tags) {
+    const cacheKey = `${tag.id}_${todayStr}`;
+    if (goalCelebratedMap[cacheKey] !== undefined) continue;
+    const stats = await window.api.getTagStats(tag.id);
+    const todayMinutes = stats.today_minutes || 0;
+    const goalMinutes = tag.daily_goal_minutes || 120;
+    goalCelebratedMap[cacheKey] = {
+      celebrated: false,
+      wasBelow: todayMinutes < goalMinutes
+    };
   }
 }
 
